@@ -30,7 +30,6 @@ jobs:
           echo "Esperando a que la app arranque..."
           sleep 10
           
-          # Verificar que la aplicación está respondiendo
           for i in {1..30}; do
             if curl -s http://localhost:8000 > /dev/null 2>&1; then
               echo "✅ Aplicación respondiendo correctamente"
@@ -40,7 +39,6 @@ jobs:
             sleep 2
           done
 
-      # 🔹 Ejecutar ZAP manualmente (sin la action problemática)
       - name: Run OWASP ZAP Baseline Scan
         run: |
           docker run --rm \
@@ -55,7 +53,17 @@ jobs:
             -a || true
         continue-on-error: true
 
-      # 🔹 Subir reportes
+      # 🔍 DEBUG - Ver qué archivos se generaron
+      - name: Debug - List generated files
+        if: always()
+        run: |
+          echo "=== Archivos en el directorio actual ==="
+          ls -la
+          echo ""
+          echo "=== Buscando reportes ZAP ==="
+          find . -name "zap-report*" -o -name "report_*" -o -name "*zap*" | head -20
+
+      # 🔹 Subir reportes (con verificación)
       - name: Upload ZAP Reports
         if: always()
         uses: actions/upload-artifact@v4
@@ -65,15 +73,22 @@ jobs:
             zap-report.html
             zap-report.json
             zap-report.md
-          if-no-files-found: ignore
+            report_html.html
+            report_json.json
+            report_md.md
+          if-no-files-found: warn
 
-      # 🔹 Mostrar resumen en el log
+      # 🔹 Mostrar contenido del reporte si existe
       - name: Display ZAP Summary
         if: always()
         run: |
+          echo "=== CONTENIDO DEL REPORTE ==="
           if [ -f zap-report.md ]; then
-            echo "=== RESUMEN DEL ESCANEO DAST ==="
             cat zap-report.md
+          elif [ -f report_md.md ]; then
+            cat report_md.md
+          else
+            echo "⚠️ No se encontró ningún reporte generado"
           fi
 
       - name: Stop and remove container
