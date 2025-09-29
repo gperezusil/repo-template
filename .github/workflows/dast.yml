@@ -80,30 +80,30 @@ jobs:
           path: zap-reports/
           if-no-files-found: warn
 
-      # 🔹 Mostrar resumen
-      - name: Display ZAP Summary
-        if: always()
-        run: |
-          echo "=== RESUMEN DEL ESCANEO DAST ==="
-          if [ -f zap-reports/zap-report.md ]; then
-            cat zap-reports/zap-report.md
-          else
-            echo "⚠️ No se generó el reporte markdown"
-          fi
+      # # 🔹 Mostrar resumen
+      # - name: Display ZAP Summary
+      #   if: always()
+      #   run: |
+      #     echo "=== RESUMEN DEL ESCANEO DAST ==="
+      #     if [ -f zap-reports/zap-report.md ]; then
+      #       cat zap-reports/zap-report.md
+      #     else
+      #       echo "⚠️ No se generó el reporte markdown"
+      #     fi
 
-      # 🔹 Crear resumen visual en GitHub
-      - name: Create Job Summary
-        if: always()
-        run: |
-          echo "## 🔒 Resultado del Escaneo DAST" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -f zap-reports/zap-report.md ]; then
-            cat zap-reports/zap-report.md >> $GITHUB_STEP_SUMMARY
-          else
-            echo "⚠️ No se pudieron generar los reportes" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📥 Descarga los reportes completos desde la sección **Artifacts**" >> $GITHUB_STEP_SUMMARY
+      # # 🔹 Crear resumen visual en GitHub
+      # - name: Create Job Summary
+      #   if: always()
+      #   run: |
+      #     echo "## 🔒 Resultado del Escaneo DAST" >> $GITHUB_STEP_SUMMARY
+      #     echo "" >> $GITHUB_STEP_SUMMARY
+      #     if [ -f zap-reports/zap-report.md ]; then
+      #       cat zap-reports/zap-report.md >> $GITHUB_STEP_SUMMARY
+      #     else
+      #       echo "⚠️ No se pudieron generar los reportes" >> $GITHUB_STEP_SUMMARY
+      #     fi
+      #     echo "" >> $GITHUB_STEP_SUMMARY
+      #     echo "📥 Descarga los reportes completos desde la sección **Artifacts**" >> $GITHUB_STEP_SUMMARY
 
       - name: Stop and remove container
         if: always()
