@@ -256,24 +256,58 @@
 #           echo "Image: ${{ inputs.acr_name }}/${{ inputs.image_name }}:${{ github.sha }}"
 
 
-name: CI Pipeline
+name: Template CI/CD DevOps
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  workflow_call:
+    inputs:
+      image_name:
+        description: "Nombre de la imagen"
+        required: true
+        type: string
+      acr_name:
+        description: "Registry ACR (ej: myregistry.azurecr.io)"
+        required: true
+        type: string
+      deploy:
+        description: "Si ejecutar despliegue"
+        required: false
+        type: boolean
+        default: true
+      azure_oidc:
+        description: "Usar autenticación OIDC para Azure"
+        required: false
+        type: boolean
+        default: false
+      staging_url:
+        description: "URL para DAST (opcional)"
+        required: false
+        type: string
+    secrets:
+      ACR_USERNAME:
+        required: true
+      ACR_PASSWORD:
+        required: true
+      AZURE_CLIENT_ID:
+        required: false
+      AZURE_TENANT_ID:
+        required: false
+      AZURE_SUBSCRIPTION_ID:
+        required: false
+      KUBE_CONFIG_DATA:
+        required: false
 
 jobs:
   test:
     uses: ./.github/workflows/test.yml
     with:
-      image_name: devsecops-app
+      image_name: ${{ inputs.image_name }}
+
   build:
     uses: ./.github/workflows/build.yml
     with:
-      image_name: devsecops-app
-      acr_name: mibanco.azurecr.io
+      image_name: ${{ inputs.image_name }}
+      acr_name: ${{ inputs.acr_name }}
     secrets:
       ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
       ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
@@ -286,11 +320,26 @@ jobs:
     needs: build
     uses: ./.github/workflows/sca.yml
     with:
-      image_name: devsecops-app
-      acr_name: mibanco.azurecr.io
+      image_name: ${{ inputs.image_name }}
+      acr_name: ${{ inputs.acr_name }}
 
   # dast:
-  #   needs: sca
+  #   if: inputs.staging_url != ''
+  #   needs: build
   #   uses: ./.github/workflows/dast.yml
   #   with:
-  #     target_url: https://staging.myapp.internal
+  #     staging_url: ${{ inputs.staging_url }}
+
+  # deploy:
+  #   if: inputs.deploy == true
+  #   needs: build
+  #   uses: ./.github/workflows/deploy.yml
+  #   with:
+  #     acr_name: ${{ inputs.acr_name }}
+  #     image_name: ${{ inputs.image_name }}
+  #     azure_oidc: ${{ inputs.azure_oidc }}
+  #   secrets:
+  #     AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  #     AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  #     AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  #     KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
