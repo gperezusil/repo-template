@@ -74,7 +74,7 @@ jobs:
       - name: Convert JSON to SARIF
         if: always()
         run: |
-          JSON_FILE="zap-reports/zap-reports.json"
+          JSON_FILE="zap-reports/zap-report.json"
           
           if [ ! -f "$JSON_FILE" ]; then
             echo "⚠️ No se encontró $JSON_FILE"
