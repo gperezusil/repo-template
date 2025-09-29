@@ -326,7 +326,6 @@ jobs:
 
   dast:
     needs: build
-    if: inputs.staging_url == ''   # si no hay staging_url, levanta el contenedor local
     uses: ./.github/workflows/dast.yml
     with:
       image_name: ${{ inputs.image_name }}
