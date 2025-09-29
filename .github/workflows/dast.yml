@@ -52,7 +52,57 @@ jobs:
         continue-on-error: true
 
       - name: Convert JSON to SARIF
-        run: jq '...' report_json.json > zap-report.sarif
+        if: always()
+        run: |
+          JSON_FILE="report_json.json"
+          
+          if [ ! -f "$JSON_FILE" ]; then
+            echo "⚠️ No se encontró $JSON_FILE"
+            exit 0
+          fi
+          
+          echo "📄 Convirtiendo $JSON_FILE a SARIF..."
+          
+          jq '{
+            "version": "2.1.0",
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "runs": [{
+              "tool": {
+                "driver": {
+                  "name": "OWASP ZAP",
+                  "informationUri": "https://www.zaproxy.org/",
+                  "version": "2.14.0"
+                }
+              },
+              "results": [
+                (.site // [] | if type == "array" then . else [.] end | .[]) as $site |
+                ($site.alerts // [] | if type == "array" then . else [.] end | .[]) as $alert |
+                ($alert.instances // [] | if type == "array" then . else [.] end | .[]) |
+                {
+                  "ruleId": ($alert.pluginid | tostring),
+                  "level": (
+                    if $alert.riskcode == "3" then "error"
+                    elif $alert.riskcode == "2" then "error"
+                    elif $alert.riskcode == "1" then "warning"
+                    else "note"
+                    end
+                  ),
+                  "message": {
+                    "text": $alert.name
+                  },
+                  "locations": [{
+                    "physicalLocation": {
+                      "artifactLocation": {
+                        "uri": .uri
+                      }
+                    }
+                  }]
+                }
+              ]
+            }]
+          }' "$JSON_FILE" > zap-report.sarif
+          
+          echo "✅ SARIF generado"
 
       - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
