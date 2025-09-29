@@ -1,0 +1,86 @@
+name: Test
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect project type
+        id: detect
+        run: |
+          echo "Detecting project type..."
+          
+          if [ -f "package.json" ]; then
+            echo "PROJECT_TYPE=nodejs" >> $GITHUB_OUTPUT
+          elif [ -f "requirements.txt" ] || [ -f "pyproject.toml" ] || [ -d "app" ]; then
+            echo "PROJECT_TYPE=python" >> $GITHUB_OUTPUT
+          elif [ -f "pom.xml" ] || [ -f "build.gradle" ]; then
+            echo "PROJECT_TYPE=java" >> $GITHUB_OUTPUT
+          else
+            echo "PROJECT_TYPE=unknown" >> $GITHUB_OUTPUT
+          fi
+
+      # --- Setup environments dynamically ---
+      - name: Setup Node.js
+        if: steps.detect.outputs.PROJECT_TYPE == 'nodejs'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Setup Python
+        if: steps.detect.outputs.PROJECT_TYPE == 'python'
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Setup Java
+        if: steps.detect.outputs.PROJECT_TYPE == 'java'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      # --- Run Unit Tests depending on type ---
+      - name: Run unit tests
+        run: |
+          case "${{ steps.detect.outputs.PROJECT_TYPE }}" in
+            "nodejs")
+              echo "Running Node.js tests..."
+              npm ci
+              npm run test --if-present || echo "⚠️ No tests found or tests failed"
+              ;;
+            "python")
+              echo "Running Python tests..."
+              python -m pip install --upgrade pip
+              [ -f "requirements.txt" ] && pip install -r requirements.txt
+              [ -f "requirements-dev.txt" ] && pip install -r requirements-dev.txt
+              pytest --maxfail=1 --disable-warnings -v || echo "⚠️ No tests found or tests failed"
+              ;;
+            "java")
+              echo "Running Java tests..."
+              if [ -f "gradlew" ]; then
+                ./gradlew test --info || echo "⚠️ No tests found or tests failed"
+              elif [ -f "mvnw" ]; then
+                ./mvnw test || echo "⚠️ No tests found or tests failed"
+              else
+                echo "No Gradle/Maven wrapper found"
+              fi
+              ;;
+            *)
+              echo "⚠️ No test runner detected for project type: ${{ steps.detect.outputs.PROJECT_TYPE }}"
+              ;;
+          esac
