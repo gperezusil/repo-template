@@ -135,17 +135,6 @@ jobs:
         with:
           sarif_file: zap-reports/zap-report.sarif
 
-      # 🔹 Subir reportes desde el directorio correcto
-      - name: Upload ZAP Reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: zap-security-reports-${{ github.run_id }}
-          path: zap-reports/
-          if-no-files-found: warn
-
-
-
       - name: Stop and remove container
         if: always()
         run: |
