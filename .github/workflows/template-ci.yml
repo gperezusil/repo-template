@@ -4,25 +4,20 @@ on:
   workflow_call:
     inputs:
       image_name:
-        description: "Nombre de la imagen"
         required: true
         type: string
       acr_name:
-        description: "Registry ACR (ej: myregistry.azurecr.io)"
         required: true
         type: string
       deploy:
-        description: "Si ejecutar despliegue"
         required: false
         type: boolean
         default: true
       azure_oidc:
-        description: "Usar autenticación OIDC para Azure"
         required: false
         type: boolean
         default: false
       staging_url:
-        description: "URL para DAST (opcional)"
         required: false
         type: string
     secrets:
