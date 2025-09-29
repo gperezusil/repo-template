@@ -146,13 +146,14 @@ jobs:
           context: .
           file: ./Dockerfile
           push: false
-          tags: ${{ inputs.acr_name }}/${{ inputs.image_name }}:ci-${{ github.run_id }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          load: true
+          # tags: ${{ inputs.acr_name }}/${{ inputs.image_name }}:ci-${{ github.run_id }}
+          tags: ${{ inputs.image_name }}:ci-${{ github.run_id }}
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
+          # image-ref: ${{ inputs.acr_name }}/${{ inputs.image_name }}:ci-${{ github.run_id }}
           image-ref: ${{ inputs.acr_name }}/${{ inputs.image_name }}:ci-${{ github.run_id }}
           format: 'sarif'
           output: 'trivy-results.sarif'
