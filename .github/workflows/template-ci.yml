@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       image_name:
-        description: 'Nombre de imagen (ej: myapp)'
+        description: 'Nombre de imagen (ej: myapp) '
         required: true
         type: string
       acr_name:
