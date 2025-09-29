@@ -68,7 +68,7 @@ jobs:
       image_name: ${{ inputs.image_name }}
 
   deploy:
-    needs: build
+    needs: [sast, sca, dast]
     uses: ./.github/workflows/deploy.yml
     with:
       image_name: ${{ inputs.acr_name }}/${{ inputs.image_name }}
