@@ -32,12 +32,23 @@ jobs:
             ${{ inputs.image_name }}:ci-${{ github.run_id }}
           echo "Esperando a que la app arranque..."
           sleep 10
+          
+          # Verificar que la aplicación está respondiendo
+          for i in {1..30}; do
+            if curl -s http://localhost:8000 > /dev/null 2>&1; then
+              echo "✅ Aplicación respondiendo correctamente"
+              break
+            fi
+            echo "⏳ Esperando... intento $i/30"
+            sleep 2
+          done
 
       - name: Prepare ZAP workspace
         run: |
           mkdir -p zap-reports
           chmod 777 zap-reports
 
+      # 🔹 Ejecutar ZAP con formato XML (necesario para SARIF)
       - name: Run OWASP ZAP Baseline Scan
         run: |
           docker run --rm \
@@ -50,21 +61,32 @@ jobs:
             -r zap-report.html \
             -J zap-report.json \
             -w zap-report.md \
+            -x zap-report.xml \
             -a || true
         continue-on-error: true
 
-      # 🔹 Convert ZAP JSON to SARIF
-      - name: Convert ZAP JSON to SARIF
+      # 🔹 Verificar archivos generados
+      - name: Debug - List generated files
+        if: always()
         run: |
-          pip install zap-sarif-converter
-          zap-sarif-converter -i zap-reports/zap-report.json -o zap-reports/zap-report.sarif
+          echo "=== Archivos generados en zap-reports ==="
+          ls -la zap-reports/
 
-      # 🔹 Upload SARIF to GitHub Security
-      - name: Upload ZAP SARIF report
+      # 🔹 Convertir XML de ZAP a SARIF usando action oficial
+      - name: Convert ZAP XML to SARIF
+        if: always()
+        uses: SvanBoxel/zaproxy-to-ghas@main
+        with:
+          alert_file: zap-reports/zap-report.xml
+          output_file: zap-reports/zap-report.sarif
+
+      # 🔹 Subir SARIF a GitHub Security
+      - name: Upload ZAP SARIF report to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: zap-reports/zap-report.sarif
+          category: zap-scan
 
       - name: Stop and remove container
         if: always()
