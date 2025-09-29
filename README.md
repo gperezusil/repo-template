@@ -58,7 +58,6 @@ jobs:
       image_name: mi-aplicacion
       acr_name: miregistro.azurecr.io
       deploy: true
-      azure_oidc: false
       staging_url: https://staging.miapp.com
     secrets:
       ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
@@ -75,7 +74,6 @@ jobs:
 | `image_name` | string | ✅ | - | Nombre de la imagen Docker |
 | `acr_name` | string | ✅ | - | URL del Azure Container Registry |
 | `deploy` | boolean | ❌ | true | Si se debe ejecutar el despliegue |
-| `azure_oidc` | boolean | ❌ | false | Usar autenticación OIDC con Azure |
 | `staging_url` | string | ❌ | - | URL del ambiente de staging para DAST |
 
 #### Secrets
@@ -84,13 +82,10 @@ jobs:
 |--------|-----------|-------------|
 | `ACR_USERNAME` | ✅ | Usuario del Azure Container Registry |
 | `ACR_PASSWORD` | ✅ | Contraseña del Azure Container Registry |
-| `AZURE_CLIENT_ID` | Condicional* | Client ID de Azure (si usas OIDC) |
-| `AZURE_TENANT_ID` | Condicional* | Tenant ID de Azure (si usas OIDC) |
-| `AZURE_SUBSCRIPTION_ID` | Condicional* | Subscription ID de Azure (si usas OIDC) |
-| `KUBE_CONFIG_DATA` | Condicional** | Configuración de Kubernetes (si no usas OIDC) |
+| `AZURE_CLIENT_ID` | ✅ | Client ID de Azure (si usas OIDC) |
+| `AZURE_TENANT_ID` | ✅ | Tenant ID de Azure (si usas OIDC) |
+| `AZURE_SUBSCRIPTION_ID` | ✅ | Subscription ID de Azure (si usas OIDC) |
 
-\* Requerido si `azure_oidc: true`  
-\** Requerido si `azure_oidc: false`
 
 ## 🔄 Pipeline de Ejecución
 
