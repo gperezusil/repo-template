@@ -304,6 +304,7 @@ jobs:
       image_name: ${{ inputs.image_name }}
 
   build:
+    needs: test
     uses: ./.github/workflows/build.yml
     with:
       image_name: ${{ inputs.image_name }}
