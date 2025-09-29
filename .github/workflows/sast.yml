@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  sast:
+  codeql:
     runs-on: ubuntu-latest
     permissions:
       security-events: write
@@ -22,10 +22,8 @@ jobs:
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
-        
+
       - name: Upload CodeQL report
-        uses: actions/upload-artifact@v4
-        if: always()
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          name: codeql-report
-          path: codeql-results.sarif
+          sarif_file: codeql-results.sarif

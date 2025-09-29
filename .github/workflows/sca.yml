@@ -11,7 +11,7 @@ on:
         type: string
 
 jobs:
-  sca:
+  trivy:
     runs-on: ubuntu-latest
     steps:
       - name: Download image artifact
@@ -31,8 +31,7 @@ jobs:
           output: 'trivy-results.sarif'
 
       - name: Upload Trivy scan results
-        uses: actions/upload-artifact@v4
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          name: trivy-raw
-          path: trivy-results.sarif
+          sarif_file: 'trivy-results.sarif'
