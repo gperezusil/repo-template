@@ -325,12 +325,11 @@ jobs:
       acr_name: ${{ inputs.acr_name }}
 
   dast:
-    if: inputs.staging_url != ''
     needs: build
+    if: inputs.staging_url == ''   # si no hay staging_url, levanta el contenedor local
     uses: ./.github/workflows/dast.yml
     with:
-      staging_url: ${{ inputs.staging_url }}
-
+      image_name: ${{ inputs.image_name }}
   # deploy:
   #   if: inputs.deploy == true
   #   needs: build
