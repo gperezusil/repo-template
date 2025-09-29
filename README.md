@@ -226,5 +226,3 @@ jobs:
 - GitHub: [@gperezusil](https://github.com/gperezusil)
 
 ---
-
-⭐ Si este template te resulta útil, considera darle una estrella al repositorio
