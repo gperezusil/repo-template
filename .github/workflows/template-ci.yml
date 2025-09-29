@@ -49,10 +49,6 @@ on:
 jobs:
   build-and-scan:
     runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
     timeout-minutes: 90
     outputs:
       image-digest: ${{ steps.build.outputs.digest }}
