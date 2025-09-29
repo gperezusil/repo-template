@@ -4,30 +4,24 @@ on:
   workflow_call:
     inputs:
       image_name:
-        description: 'Nombre de la imagen'
         required: true
         type: string
       image_tag:
-        description: 'Tag de la imagen (ej: latest o SHA)'
         required: true
         type: string
       replicas:
-        description: 'Número de réplicas'
         required: false
         type: number
         default: 1
       container_port:
-        description: 'Puerto donde corre la app dentro del contenedor'
         required: false
         type: number
         default: 8080
       azure_oidc:
-        description: 'Usar OIDC para login en Azure'
         required: false
         type: boolean
         default: false
       kubeconfig:
-        description: 'Base64 kubeconfig (opcional si usas OIDC)'
         required: false
         type: string
 
@@ -56,7 +50,7 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Set kubeconfig
+      - name: Cargar SetupConfig
         env:
           KUBECONFIG_DATA: ${{ inputs.kubeconfig || secrets.KUBE_CONFIG_DATA }}
         if: env.KUBECONFIG_DATA != ''
@@ -64,17 +58,17 @@ jobs:
           echo "$KUBECONFIG_DATA" | base64 -d > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
 
-      - name: Prepare dynamic deployment manifest
+      - name: Preparando y actualizando el manifiesto
         run: |
           sed -e "s|{{IMAGE_NAME}}|${{ inputs.image_name }}|g" \
               -e "s|{{IMAGE_TAG}}|${{ inputs.image_tag }}|g" \
               -e "s|{{REPLICAS}}|${{ inputs.replicas }}|g" \
               -e "s|{{CONTAINER_PORT}}|${{ inputs.container_port }}|g" \
-              k8s/deployment.yaml > dynamic-deploy.yaml
+              deployment/deployment-aks.yaml > dynamic-deploy.yaml
 
-      - name: Apply Kubernetes manifest
+      - name: Aplicando el manifiesto
         run: kubectl apply -f dynamic-deploy.yaml
 
-      - name: Wait for rollout
+      - name: Espera el rollout
         run: |
           kubectl rollout status deployment/my-app

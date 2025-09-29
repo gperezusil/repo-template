@@ -14,15 +14,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download image artifact
+      - name: Descargando imagen
         uses: actions/download-artifact@v4
         with:
           name: docker-image
 
-      - name: Load Docker image
+      - name: Cargar imagen
         run: docker load -i image.tar
 
-      - name: Run application container
+      - name: Corriendo contenedor
         run: |
           docker run -d --network host --name app-under-test \
             ${{ inputs.image_name }}:ci-${{ github.run_id }}

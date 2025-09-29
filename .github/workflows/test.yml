@@ -16,10 +16,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Detect project type
+      - name: Detectando tipo de proyecto
         id: detect
         run: |
-          echo "Detecting project type..."
+          echo "Detectando tipo de proyecto"
           
           if [ -f "package.json" ]; then
             echo "PROJECT_TYPE=nodejs" >> $GITHUB_OUTPUT
@@ -59,28 +59,28 @@ jobs:
         run: |
           case "${{ steps.detect.outputs.PROJECT_TYPE }}" in
             "nodejs")
-              echo "Running Node.js tests..."
+              echo "Corriendo Node.js tests..."
               npm ci
-              npm run test --if-present || echo "⚠️ No tests found or tests failed"
+              npm run test --if-present || echo "No hay test"
               ;;
             "python")
-              echo "Running Python tests..."
+              echo "Corriendo Python tests..."
               python -m pip install --upgrade pip
               [ -f "requirements.txt" ] && pip install -r requirements.txt
               [ -f "requirements-dev.txt" ] && pip install -r requirements-dev.txt
-              pytest --maxfail=1 --disable-warnings -v || echo "⚠️ No tests found or tests failed"
+              pytest --maxfail=1 --disable-warnings -v || echo "No hay test"
               ;;
             "java")
               echo "Running Java tests..."
               if [ -f "gradlew" ]; then
-                ./gradlew test --info || echo "⚠️ No tests found or tests failed"
+                ./gradlew test --info || echo "No hay test"
               elif [ -f "mvnw" ]; then
-                ./mvnw test || echo "⚠️ No tests found or tests failed"
+                ./mvnw test || echo "No hay test"
               else
-                echo "No Gradle/Maven wrapper found"
+                echo ""
               fi
               ;;
             *)
-              echo "⚠️ No test runner detected for project type: ${{ steps.detect.outputs.PROJECT_TYPE }}"
+              echo "No hay test para el tipo de proyecto: ${{ steps.detect.outputs.PROJECT_TYPE }}"
               ;;
           esac

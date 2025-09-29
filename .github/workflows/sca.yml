@@ -14,15 +14,15 @@ jobs:
   trivy:
     runs-on: ubuntu-latest
     steps:
-      - name: Download image artifact
+      - name: Descargando imagen
         uses: actions/download-artifact@v4
         with:
           name: docker-image
 
-      - name: Load Docker image
+      - name: Cargar imagen
         run: docker load -i image.tar
 
-      - name: Run Trivy vulnerability scanner
+      - name: Corriendo Trivy Vulnerabilidad scanner
         uses: aquasecurity/trivy-action@master
         with:
           # image-ref: ${{ inputs.acr_name }}/${{ inputs.image_name }}:ci-${{ github.run_id }}
@@ -30,7 +30,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
 
-      - name: Upload Trivy scan results
+      - name: Subiendo Trivy scan resultados
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
