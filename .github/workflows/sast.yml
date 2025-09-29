@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  codeql:
+  sast:
     runs-on: ubuntu-latest
     permissions:
       security-events: write
