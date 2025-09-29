@@ -108,19 +108,25 @@ jobs:
                     end
                   ),
                   "message": {
-                    "text": $alert.name
+                    "text": ($alert.name + " at " + .uri)
                   },
                   "locations": [{
                     "physicalLocation": {
                       "artifactLocation": {
-                        "uri": .uri
+                        "uri": "application-endpoint"
+                      },
+                      "region": {
+                        "startLine": 1
                       }
-                    }
+                    },
+                    "logicalLocations": [{
+                      "fullyQualifiedName": .uri
+                    }]
                   }]
                 }
               ]
             }]
-          }' "$JSON_FILE" > zap-report.sarif
+          }' "$JSON_FILE" > zap-reports/zap-report.sarif
           
           echo "✅ SARIF generado"
 
