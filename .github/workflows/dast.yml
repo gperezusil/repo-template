@@ -22,25 +22,67 @@ jobs:
       - name: Load Docker image
         run: docker load -i image.tar
 
-      # 🔹 (3) Levantar la aplicación en background
+      # 🔹 Levantar la aplicación con network host
       - name: Run application container
         run: |
-          docker run -d -p 8000:8000 --name app-under-test \
+          docker run -d --network host --name app-under-test \
             ${{ inputs.image_name }}:ci-${{ github.run_id }}
+          
           echo "Esperando a que la app arranque..."
-          sleep 15
+          sleep 10
+          
+          # Verificar que la aplicación está respondiendo
+          for i in {1..30}; do
+            if curl -s http://localhost:8000 > /dev/null 2>&1; then
+              echo "✅ Aplicación respondiendo correctamente"
+              curl -v http://localhost:8000
+              break
+            fi
+            echo "⏳ Esperando... intento $i/30"
+            sleep 2
+          done
 
-      # 🔹 (4) Ejecutar OWASP ZAP Baseline Scan
+      # 🔹 Verificar estado antes del escaneo
+      - name: Verify application is running
+        run: |
+          echo "=== Estado de contenedores ==="
+          docker ps -a
+          
+          echo "=== Logs de la aplicación ==="
+          docker logs app-under-test
+          
+          echo "=== Probando conexión ==="
+          curl -v http://localhost:8000 || echo "❌ No se pudo conectar"
+          
+          echo "=== Puertos en escucha ==="
+          netstat -tlnp || ss -tlnp
+
+      # 🔹 Ejecutar OWASP ZAP Baseline Scan
       - name: Run OWASP ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.12.0
         with:
           target: 'http://localhost:8000'
           cmd_options: '-a'
           allow_issue_writing: false
+        continue-on-error: true  # Para ver los logs aunque falle
 
-      # 🔹 (5) Cleanup
+      # 🔹 Upload reports si existen
+      - name: Upload ZAP reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-reports
+          path: |
+            report_*.html
+            report_*.json
+            report_*.md
+          if-no-files-found: ignore
+
+      # 🔹 Cleanup
       - name: Stop and remove container
         if: always()
         run: |
+          echo "=== Logs finales de la aplicación ==="
+          docker logs app-under-test || true
           docker stop app-under-test || true
           docker rm app-under-test || true
