@@ -10,10 +10,6 @@ on:
 jobs:
   dast:
     runs-on: ubuntu-latest
-    permissions:
-      security-events: write
-      actions: read
-      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,25 +26,16 @@ jobs:
         run: |
           docker run -d --network host --name app-under-test \
             ${{ inputs.image_name }}:ci-${{ github.run_id }}
+          
           echo "Esperando a que la app arranque..."
           sleep 10
-          
-          # Verificar que la aplicación está respondiendo
-          for i in {1..30}; do
-            if curl -s http://localhost:8000 > /dev/null 2>&1; then
-              echo "✅ Aplicación respondiendo correctamente"
-              break
-            fi
-            echo "⏳ Esperando... intento $i/30"
-            sleep 2
-          done
-
+      # 🔹 Crear directorio con permisos correctos
       - name: Prepare ZAP workspace
         run: |
           mkdir -p zap-reports
           chmod 777 zap-reports
 
-      # 🔹 Ejecutar ZAP con formato XML (necesario para SARIF)
+      # 🔹 Ejecutar ZAP con el directorio correcto
       - name: Run OWASP ZAP Baseline Scan
         run: |
           docker run --rm \
@@ -61,32 +48,14 @@ jobs:
             -r zap-report.html \
             -J zap-report.json \
             -w zap-report.md \
-            -x zap-report.xml \
             -a || true
         continue-on-error: true
 
-      # 🔹 Verificar archivos generados
-      - name: Debug - List generated files
-        if: always()
-        run: |
-          echo "=== Archivos generados en zap-reports ==="
-          ls -la zap-reports/
-
-      # 🔹 Convertir XML de ZAP a SARIF usando action oficial
-      - name: Convert ZAP XML to SARIF
-        if: always()
-        uses: SvanBoxel/zaproxy-to-ghas@main
-        with:
-          alert_file: zap-reports/zap-report.xml
-          output_file: zap-reports/zap-report.sarif
-
-      # 🔹 Subir SARIF a GitHub Security
-      - name: Upload ZAP SARIF report to GitHub Security
+      - name: Upload to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: zap-reports/zap-report.sarif
-          category: zap-scan
+          sarif_file: results.sarif
 
       - name: Stop and remove container
         if: always()
