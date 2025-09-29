@@ -163,99 +163,99 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
 
-      - name: Login to Azure Container Registry (Username/Password)
-        env:
-          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
-          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
-        if: env.ACR_USERNAME != '' && env.ACR_PASSWORD != ''
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ inputs.acr_name }}
-          username: ${{ env.ACR_USERNAME }}
-          password: ${{ env.ACR_PASSWORD }}
+      # - name: Login to Azure Container Registry (Username/Password)
+      #   env:
+      #     ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+      #     ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+      #   if: env.ACR_USERNAME != '' && env.ACR_PASSWORD != ''
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: ${{ inputs.acr_name }}
+      #     username: ${{ env.ACR_USERNAME }}
+      #     password: ${{ env.ACR_PASSWORD }}
 
-      - name: Azure Login for ACR (OIDC)
-        env:
-          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
-        if: inputs.azure_oidc == true && env.ACR_USERNAME == ''
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      # - name: Azure Login for ACR (OIDC)
+      #   env:
+      #     ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+      #   if: inputs.azure_oidc == true && env.ACR_USERNAME == ''
+      #   uses: azure/login@v1
+      #   with:
+      #     client-id: ${{ secrets.AZURE_CLIENT_ID }}
+      #     tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+      #     subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Login to ACR via Azure CLI (OIDC)
-        env:
-          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
-        if: inputs.azure_oidc == true && env.ACR_USERNAME == ''
-        run: |
-          # Extract ACR name without .azurecr.io
-          ACR_NAME=$(echo "${{ inputs.acr_name }}" | sed 's/.azurecr.io//')
-          az acr login --name $ACR_NAME
+      # - name: Login to ACR via Azure CLI (OIDC)
+      #   env:
+      #     ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+      #   if: inputs.azure_oidc == true && env.ACR_USERNAME == ''
+      #   run: |
+      #     # Extract ACR name without .azurecr.io
+      #     ACR_NAME=$(echo "${{ inputs.acr_name }}" | sed 's/.azurecr.io//')
+      #     az acr login --name $ACR_NAME
 
-      - name: Build and push Docker image
-        if: success()
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: |
-            ${{ inputs.acr_name }}/${{ inputs.image_name }}:latest
-            ${{ inputs.acr_name }}/${{ inputs.image_name }}:${{ github.sha }}
-            ${{ inputs.acr_name }}/${{ inputs.image_name }}:ci-${{ github.run_id }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      # - name: Build and push Docker image
+      #   if: success()
+      #   uses: docker/build-push-action@v5
+      #   with:
+      #     context: .
+      #     file: ./Dockerfile
+      #     push: true
+      #     tags: |
+      #       ${{ inputs.acr_name }}/${{ inputs.image_name }}:latest
+      #       ${{ inputs.acr_name }}/${{ inputs.image_name }}:${{ github.sha }}
+      #       ${{ inputs.acr_name }}/${{ inputs.image_name }}:ci-${{ github.run_id }}
+      #     cache-from: type=gha
+      #     cache-to: type=gha,mode=max
 
-  security-scan:
-    runs-on: ubuntu-latest
-    needs: build-and-scan
-    if: inputs.staging_url != ''
+  # security-scan:
+  #   runs-on: ubuntu-latest
+  #   needs: build-and-scan
+  #   if: inputs.staging_url != ''
     
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
 
-      - name: Run DAST with OWASP ZAP
-        uses: zaproxy/action-baseline@v0.10.0
-        with:
-          target: ${{ inputs.staging_url }}
-          rules_file_name: '.zap/rules.tsv'
-          cmd_options: '-a'
+  #     - name: Run DAST with OWASP ZAP
+  #       uses: zaproxy/action-baseline@v0.10.0
+  #       with:
+  #         target: ${{ inputs.staging_url }}
+  #         rules_file_name: '.zap/rules.tsv'
+  #         cmd_options: '-a'
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build-and-scan
-    if: inputs.deploy == true    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   needs: build-and-scan
+  #   if: inputs.deploy == true    
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
 
-      - name: Azure Login (OIDC)
-        if: inputs.azure_oidc == true
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  #     - name: Azure Login (OIDC)
+  #       if: inputs.azure_oidc == true
+  #       uses: azure/login@v1
+  #       with:
+  #         client-id: ${{ secrets.AZURE_CLIENT_ID }}
+  #         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+  #         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Set kubeconfig
-        env:
-          KUBECONFIG_DATA: ${{ inputs.kubeconfig || secrets.KUBE_CONFIG_DATA }}
-        if: env.KUBECONFIG_DATA != ''
-        run: |
-          echo "$KUBECONFIG_DATA" | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
+  #     - name: Set kubeconfig
+  #       env:
+  #         KUBECONFIG_DATA: ${{ inputs.kubeconfig || secrets.KUBE_CONFIG_DATA }}
+  #       if: env.KUBECONFIG_DATA != ''
+  #       run: |
+  #         echo "$KUBECONFIG_DATA" | base64 -d > $HOME/.kube/config
+  #         chmod 600 $HOME/.kube/config
 
-      - name: Deploy to AKS
-        uses: ./.github/actions/deploy-aks
-        with:
-          acr_name: ${{ inputs.acr_name }}
-          image_name: ${{ inputs.image_name }}
-          image_tag: ${{ github.sha }}
-          azure_oidc: ${{ inputs.azure_oidc }}
+  #     - name: Deploy to AKS
+  #       uses: ./.github/actions/deploy-aks
+  #       with:
+  #         acr_name: ${{ inputs.acr_name }}
+  #         image_name: ${{ inputs.image_name }}
+  #         image_tag: ${{ github.sha }}
+  #         azure_oidc: ${{ inputs.azure_oidc }}
 
-      - name: Post-deployment verification
-        run: |
-          echo "Deployment completed successfully"
-          echo "Image: ${{ inputs.acr_name }}/${{ inputs.image_name }}:${{ github.sha }}"
+  #     - name: Post-deployment verification
+  #       run: |
+  #         echo "Deployment completed successfully"
+  #         echo "Image: ${{ inputs.acr_name }}/${{ inputs.image_name }}:${{ github.sha }}"
