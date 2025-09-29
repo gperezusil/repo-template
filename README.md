@@ -102,15 +102,22 @@ graph TD
     B --> C[SAST]
     B --> D[SCA]
     B --> E[DAST]
-    B --> F[Deploy]
+    C --> F[Deploy]
+    D --> F
+    E --> F
 ```
 
 1. **Test**: Ejecuta las pruebas unitarias y de integración
 2. **Build**: Construye la imagen Docker y la publica en ACR
-3. **SAST**: Análisis estático del código fuente
-4. **SCA**: Análisis de vulnerabilidades en dependencias
-5. **DAST**: Pruebas de seguridad dinámicas
-6. **Deploy**: Despliega la aplicación en Kubernetes
+3. **Análisis de Seguridad (en paralelo)**:
+   - **SAST**: Análisis estático del código fuente
+   - **SCA**: Análisis de vulnerabilidades en dependencias
+   - **DAST**: Pruebas de seguridad dinámicas
+4. **Deploy**: Despliega la aplicación en Kubernetes **solo si todas las pruebas de seguridad pasan**
+
+### 🔒 Gate de Seguridad
+
+El despliegue está protegido por un gate de seguridad: **todas las pruebas (SAST, SCA y DAST) deben pasar exitosamente antes de desplegar**. Si cualquier prueba de seguridad falla, el pipeline se detiene y no se realiza el despliegue.
 
 ## ⚙️ Configuración en tu Repositorio
 
@@ -185,10 +192,11 @@ Analiza las dependencias y detecta vulnerabilidades conocidas.
 Realiza pruebas de seguridad dinámicas contra la aplicación.
 
 ### deploy.yml
-- Despliega a Kubernetes
+- Despliega a Kubernetes **solo si todas las pruebas de seguridad pasan**
 - Configura 2 réplicas por defecto
 - Puerto 8000 por defecto
 - Soporta autenticación OIDC o kubeconfig
+- Depende de: SAST, SCA y DAST
 
 ## 🤝 Contribuir
 
