@@ -1,4 +1,4 @@
-# Repo Template - DevOps CI/CD Workflows
+# Repo Template - DevSecOps CI/CD Workflows
 
 Template de workflows reutilizables de GitHub Actions para implementar pipelines completos de CI/CD con integración a Azure Container Registry (ACR) y Kubernetes.
 
