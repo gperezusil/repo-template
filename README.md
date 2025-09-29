@@ -193,16 +193,6 @@ Realiza pruebas de seguridad dinámicas contra la aplicación.
 - Soporta autenticación OIDC o kubeconfig
 - Depende de: SAST, SCA y DAST
 
-## 🤝 Contribuir
-
-Las contribuciones son bienvenidas. Para contribuir:
-
-1. Fork el repositorio
-2. Crea una rama para tu feature (`git checkout -b feature/MejoraPipeline`)
-3. Commit tus cambios (`git commit -m 'Add: nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/MejoraPipeline`)
-5. Abre un Pull Request
-
 ## 📝 Ejemplo Completo
 
 ```yaml
@@ -234,17 +224,6 @@ jobs:
 **Gherson Perez** (gperezusil)
 
 - GitHub: [@gperezusil](https://github.com/gperezusil)
-
-## 🔗 Enlaces Útiles
-
-- [Documentación de GitHub Actions](https://docs.github.com/en/actions)
-- [Azure Container Registry](https://azure.microsoft.com/en-us/services/container-registry/)
-- [Workflows Reutilizables](https://docs.github.com/en/actions/using-workflows/reusing-workflows)
-- [OIDC con Azure](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/configuring-openid-connect-in-azure)
-
-## 📄 Licencia
-
-[Especifica tu licencia aquí]
 
 ---
 
