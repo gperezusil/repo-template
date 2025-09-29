@@ -29,16 +29,6 @@ jobs:
           
           echo "Esperando a que la app arranque..."
           sleep 10
-          
-          for i in {1..30}; do
-            if curl -s http://localhost:8000 > /dev/null 2>&1; then
-              echo "✅ Aplicación respondiendo correctamente"
-              break
-            fi
-            echo "⏳ Esperando... intento $i/30"
-            sleep 2
-          done
-
       # 🔹 Crear directorio con permisos correctos
       - name: Prepare ZAP workspace
         run: |
@@ -61,16 +51,6 @@ jobs:
             -a || true
         continue-on-error: true
 
-      # 🔍 DEBUG - Ver qué archivos se generaron
-      - name: Debug - List generated files
-        if: always()
-        run: |
-          echo "=== Archivos en zap-reports ==="
-          ls -la zap-reports/ || echo "Directorio no existe"
-          echo ""
-          echo "=== Archivos en directorio actual ==="
-          ls -la
-
       # 🔹 Subir reportes desde el directorio correcto
       - name: Upload ZAP Reports
         if: always()
@@ -79,32 +59,6 @@ jobs:
           name: zap-security-reports-${{ github.run_id }}
           path: zap-reports/
           if-no-files-found: warn
-
-      # # 🔹 Mostrar resumen
-      # - name: Display ZAP Summary
-      #   if: always()
-      #   run: |
-      #     echo "=== RESUMEN DEL ESCANEO DAST ==="
-      #     if [ -f zap-reports/zap-report.md ]; then
-      #       cat zap-reports/zap-report.md
-      #     else
-      #       echo "⚠️ No se generó el reporte markdown"
-      #     fi
-
-      # # 🔹 Crear resumen visual en GitHub
-      # - name: Create Job Summary
-      #   if: always()
-      #   run: |
-      #     echo "## 🔒 Resultado del Escaneo DAST" >> $GITHUB_STEP_SUMMARY
-      #     echo "" >> $GITHUB_STEP_SUMMARY
-      #     if [ -f zap-reports/zap-report.md ]; then
-      #       cat zap-reports/zap-report.md >> $GITHUB_STEP_SUMMARY
-      #     else
-      #       echo "⚠️ No se pudieron generar los reportes" >> $GITHUB_STEP_SUMMARY
-      #     fi
-      #     echo "" >> $GITHUB_STEP_SUMMARY
-      #     echo "📥 Descarga los reportes completos desde la sección **Artifacts**" >> $GITHUB_STEP_SUMMARY
-
       - name: Stop and remove container
         if: always()
         run: |
