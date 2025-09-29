@@ -10,6 +10,10 @@ on:
 jobs:
   dast:
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,16 +30,14 @@ jobs:
         run: |
           docker run -d --network host --name app-under-test \
             ${{ inputs.image_name }}:ci-${{ github.run_id }}
-          
           echo "Esperando a que la app arranque..."
           sleep 10
-      # 🔹 Crear directorio con permisos correctos
+
       - name: Prepare ZAP workspace
         run: |
           mkdir -p zap-reports
           chmod 777 zap-reports
 
-      # 🔹 Ejecutar ZAP con el directorio correcto
       - name: Run OWASP ZAP Baseline Scan
         run: |
           docker run --rm \
@@ -51,14 +53,19 @@ jobs:
             -a || true
         continue-on-error: true
 
-      # 🔹 Subir reportes desde el directorio correcto
-      - name: Upload ZAP Reports
+      # 🔹 Convert ZAP JSON to SARIF
+      - name: Convert ZAP JSON to SARIF
+        run: |
+          pip install zap-sarif-converter
+          zap-sarif-converter -i zap-reports/zap-report.json -o zap-reports/zap-report.sarif
+
+      # 🔹 Upload SARIF to GitHub Security
+      - name: Upload ZAP SARIF report
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: zap-security-reports-${{ github.run_id }}
-          path: zap-reports/
-          if-no-files-found: warn
+          sarif_file: zap-reports/zap-report.sarif
+
       - name: Stop and remove container
         if: always()
         run: |
