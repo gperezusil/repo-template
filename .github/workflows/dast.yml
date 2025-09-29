@@ -14,18 +14,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 🔹 (1) Descargar la imagen como artifact (guardada en build.yml)
       - name: Download image artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ inputs.image_name }}-image
-          path: .
+          name: docker-image
 
-      # 🔹 (2) Cargar la imagen al Docker local
       - name: Load Docker image
-        run: |
-          docker load < ${{ inputs.image_name }}.tar
-          docker images
+        run: docker load -i image.tar
 
       # 🔹 (3) Levantar la aplicación en background
       - name: Run application container
