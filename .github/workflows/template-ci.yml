@@ -324,12 +324,12 @@ jobs:
       image_name: ${{ inputs.image_name }}
       acr_name: ${{ inputs.acr_name }}
 
-  # dast:
-  #   if: inputs.staging_url != ''
-  #   needs: build
-  #   uses: ./.github/workflows/dast.yml
-  #   with:
-  #     staging_url: ${{ inputs.staging_url }}
+  dast:
+    if: inputs.staging_url != ''
+    needs: build
+    uses: ./.github/workflows/dast.yml
+    with:
+      staging_url: ${{ inputs.staging_url }}
 
   # deploy:
   #   if: inputs.deploy == true

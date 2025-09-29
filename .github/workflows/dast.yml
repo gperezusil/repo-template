@@ -1,0 +1,51 @@
+name: DAST Scan
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        required: true
+        type: string
+
+jobs:
+  dast:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 🔹 (1) Descargar la imagen como artifact (guardada en build.yml)
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.image_name }}-image
+          path: .
+
+      # 🔹 (2) Cargar la imagen al Docker local
+      - name: Load Docker image
+        run: |
+          docker load < ${{ inputs.image_name }}.tar
+          docker images
+
+      # 🔹 (3) Levantar la aplicación en background
+      - name: Run application container
+        run: |
+          docker run -d -p 8000:8000 --name app-under-test \
+            ${{ inputs.image_name }}:ci-${{ github.run_id }}
+          echo "Esperando a que la app arranque..."
+          sleep 15
+
+      # 🔹 (4) Ejecutar OWASP ZAP Baseline Scan
+      - name: Run OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.7.0
+        with:
+          target: 'http://localhost:8000'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+
+      # 🔹 (5) Cleanup
+      - name: Stop and remove container
+        if: always()
+        run: |
+          docker stop app-under-test || true
+          docker rm app-under-test || true
