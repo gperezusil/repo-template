@@ -10,10 +10,6 @@ on:
 jobs:
   dast:
     runs-on: ubuntu-latest
-    permissions:
-      security-events: write
-      actions: read
-      contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,114 +28,38 @@ jobs:
             ${{ inputs.image_name }}:ci-${{ github.run_id }}
           
           echo "Esperando a que la app arranque..."
-          sleep 15
-          
-          for i in {1..30}; do
-            if curl -s http://localhost:8000 > /dev/null 2>&1; then
-              echo "✅ Aplicación respondiendo"
-              break
-            fi
-            sleep 2
-          done
-
-      # 🔹 OWASP ZAP Scan
-      - name: OWASP ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.12.0
-        with:
-          target: 'http://localhost:8000'
-          fail_action: false
-
-      # 🔹 Ver qué archivos se generaron realmente
-      - name: Debug - List generated files
-        if: always()
+          sleep 10
+      # 🔹 Crear directorio con permisos correctos
+      - name: Prepare ZAP workspace
         run: |
-          echo "=== Archivos en directorio actual ==="
-          ls -lah
-          echo ""
-          echo "=== Buscando archivos SARIF ==="
-          find . -name "*.sarif" -o -name "*results*" | head -20
-          echo ""
-          echo "=== Buscando reportes ZAP ==="
-          find . -name "*report*" -o -name "*zap*" | head -20
+          mkdir -p zap-reports
+          chmod 777 zap-reports
 
-      # 🔹 Convertir JSON a SARIF (backup por si no se genera)
-      - name: Convert JSON to SARIF if needed
-        if: always()
+      # 🔹 Ejecutar ZAP con el directorio correcto
+      - name: Run OWASP ZAP Baseline Scan
         run: |
-          # Buscar el archivo JSON generado
-          JSON_FILE=$(find . -name "report_json.json" -o -name "*report*.json" | head -1)
-          
-          if [ -z "$JSON_FILE" ]; then
-            echo "⚠️ No se encontró archivo JSON"
-            exit 0
-          fi
-          
-          echo "📄 Usando archivo: $JSON_FILE"
-          
-          # Convertir a SARIF
-          jq '{
-            "version": "2.1.0",
-            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
-            "runs": [{
-              "tool": {
-                "driver": {
-                  "name": "OWASP ZAP",
-                  "informationUri": "https://www.zaproxy.org/",
-                  "version": "2.14.0"
-                }
-              },
-              "results": [
-                (.site // [] | if type == "array" then . else [.] end | .[]) as $site |
-                ($site.alerts // [] | if type == "array" then . else [.] end | .[]) as $alert |
-                ($alert.instances // [] | if type == "array" then . else [.] end | .[]) |
-                {
-                  "ruleId": ($alert.pluginid | tostring),
-                  "level": (
-                    if $alert.riskcode == "3" then "error"
-                    elif $alert.riskcode == "2" then "error"
-                    elif $alert.riskcode == "1" then "warning"
-                    else "note"
-                    end
-                  ),
-                  "message": {
-                    "text": $alert.name
-                  },
-                  "locations": [{
-                    "physicalLocation": {
-                      "artifactLocation": {
-                        "uri": .uri
-                      }
-                    }
-                  }]
-                }
-              ]
-            }]
-          }' "$JSON_FILE" > zap-results.sarif
-          
-          echo "✅ SARIF generado en zap-results.sarif"
+          docker run --rm \
+            -v $(pwd)/zap-reports:/zap/wrk/:rw \
+            --network host \
+            --user root \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py \
+            -t http://localhost:8000 \
+            -r zap-report.html \
+            -J zap-report.json \
+            -w zap-report.md \
+            -a || true
+        continue-on-error: true
 
-      # 🔹 Verificar SARIF
-      - name: Verify SARIF exists
-        if: always()
-        run: |
-          if [ -f zap-results.sarif ]; then
-            echo "✅ SARIF encontrado"
-            echo "Alertas: $(jq '.runs[0].results | length' zap-results.sarif)"
-          else
-            echo "❌ SARIF no existe"
-            exit 1
-          fi
+      - name: Convert JSON to SARIF
+        run: jq '...' report_json.json > zap-report.sarif
 
-      # 🔹 Subir a GitHub Security
-      - name: Upload to GitHub Security
+      - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
         with:
-          sarif_file: zap-results.sarif
-          category: zap-dast-scan
+          sarif_file: zap-report.sarif
 
-
-      - name: Stop container
+      - name: Stop and remove container
         if: always()
         run: |
           docker stop app-under-test || true
