@@ -52,7 +52,7 @@ jobs:
     permissions:
       actions: read
       contents: read
-      security-events: write   # 👈 necesario para subir resultados de CodeQL
+      security-events: write
     timeout-minutes: 90
     outputs:
       image-digest: ${{ steps.build.outputs.digest }}
