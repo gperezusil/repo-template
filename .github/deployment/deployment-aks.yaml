@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+  labels:
+    app: my-app
+spec:
+  replicas: {{REPLICAS}}
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: app
+        image: {{IMAGE_NAME}}:{{IMAGE_TAG}}
+        ports:
+        - containerPort: {{CONTAINER_PORT}}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-svc
+spec:
+  selector:
+    app: my-app
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: {{CONTAINER_PORT}}

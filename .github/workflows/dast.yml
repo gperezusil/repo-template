@@ -61,15 +61,6 @@ jobs:
             -a || true
         continue-on-error: true
 
-      # 🔍 DEBUG - Ver qué archivos se generaron
-      - name: Debug - List generated files
-        if: always()
-        run: |
-          echo "=== Archivos en zap-reports ==="
-          ls -la zap-reports/ || echo "Directorio no existe"
-          echo ""
-          echo "=== Archivos en directorio actual ==="
-          ls -la
 
       - name: Convert JSON to SARIF
         if: always()

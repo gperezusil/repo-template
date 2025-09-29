@@ -1,0 +1,80 @@
+name: Deploy to AKS
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        description: 'Nombre de la imagen'
+        required: true
+        type: string
+      image_tag:
+        description: 'Tag de la imagen (ej: latest o SHA)'
+        required: true
+        type: string
+      replicas:
+        description: 'Número de réplicas'
+        required: false
+        type: number
+        default: 1
+      container_port:
+        description: 'Puerto donde corre la app dentro del contenedor'
+        required: false
+        type: number
+        default: 8080
+      azure_oidc:
+        description: 'Usar OIDC para login en Azure'
+        required: false
+        type: boolean
+        default: false
+      kubeconfig:
+        description: 'Base64 kubeconfig (opcional si usas OIDC)'
+        required: false
+        type: string
+
+    secrets:
+      AZURE_CLIENT_ID:
+        required: false
+      AZURE_TENANT_ID:
+        required: false
+      AZURE_SUBSCRIPTION_ID:
+        required: false
+      KUBE_CONFIG_DATA:
+        required: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        if: inputs.azure_oidc == true
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set kubeconfig
+        env:
+          KUBECONFIG_DATA: ${{ inputs.kubeconfig || secrets.KUBE_CONFIG_DATA }}
+        if: env.KUBECONFIG_DATA != ''
+        run: |
+          echo "$KUBECONFIG_DATA" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+
+      - name: Prepare dynamic deployment manifest
+        run: |
+          sed -e "s|{{IMAGE_NAME}}|${{ inputs.image_name }}|g" \
+              -e "s|{{IMAGE_TAG}}|${{ inputs.image_tag }}|g" \
+              -e "s|{{REPLICAS}}|${{ inputs.replicas }}|g" \
+              -e "s|{{CONTAINER_PORT}}|${{ inputs.container_port }}|g" \
+              k8s/deployment.yaml > dynamic-deploy.yaml
+
+      - name: Apply Kubernetes manifest
+        run: kubectl apply -f dynamic-deploy.yaml
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/my-app
